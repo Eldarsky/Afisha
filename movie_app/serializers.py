@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from.models import Movie, Review, Director
+from .models import Movie, Review, Director
 from rest_framework.exceptions import ValidationError
 
 

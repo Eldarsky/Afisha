@@ -5,6 +5,47 @@ from .serializers import MovieDetailSerializer, MovieSerializer, ReviewSerialize
     DirectorSerializer, DirectorDetailSerializer, MovieValidateSerializer, DirectorValidateSerializer, \
     ReviewValidateSerializer
 from .models import Movie, Review, Director
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.viewsets import ModelViewSet
+
+
+class DirectorListAPIView(ListCreateAPIView):
+    queryset = Director.objects.all()
+    serializer_class = DirectorSerializer
+    pagination_class = PageNumberPagination
+
+
+class DirectorDetailAPIView(RetrieveUpdateDestroyAPIView):
+    queryset = Director.objects.all()
+    serializer_class = DirectorSerializer
+    lookup_field = 'id'
+
+
+class ReviewModelViewSet(ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    pagination_class = PageNumberPagination
+    lookup_field = 'id'
+
+
+class MovieListCreateAPIView(ListCreateAPIView):
+    queryset = Movie.objects.all()
+    serializer_class = MovieSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = MovieValidateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(data={'errors': serializer.errors},
+                            status=status.HTTP_406_NOT_ACCEPTABLE)
+        title = serializer.validated_data.get('title')
+        description = serializer.validated_data.get('description')
+        duration = serializer.validated_data.get('duration')
+        director_id = serializer.validated_data.get('director_id')
+
+        movie = Movie.objects.create(title=title, description=description, duration=duration, director_id=director_id)
+        movie.save()
+        return Response(data=MovieDetailSerializer(movie).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET', 'POST'])
@@ -120,26 +161,5 @@ def movie_detail_view(request, id):
         movie.description = description
         movie.duration = duration
         movie.director_id = director_id
-        movie.save()
-        return Response(data=MovieDetailSerializer(movie).data, status=status.HTTP_201_CREATED)
-
-
-@api_view(['GET', 'POST'])
-def movie_view(request):
-    if request.method == 'GET':
-        movies = Movie.objects.all()
-        serializer = MovieSerializer(movies, many=True)
-        return Response(data=serializer.data)
-    elif request.method == 'POST':
-        serializer = MovieValidateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(data={'errors': serializer.errors},
-                            status=status.HTTP_406_NOT_ACCEPTABLE)
-        title = serializer.validated_data.get('title')
-        description = serializer.validated_data.get('description')
-        duration = serializer.validated_data.get('duration')
-        director_id = serializer.validated_data.get('director_id')
-
-        movie = Movie.objects.create(title=title, description=description, duration=duration, director_id=director_id)
         movie.save()
         return Response(data=MovieDetailSerializer(movie).data, status=status.HTTP_201_CREATED)
